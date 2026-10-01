@@ -19,135 +19,72 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Project Files
+      - name: Setup Android Project Directories
         run: |
-          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/layout app/src/main/res/values
+          mkdir -p app/src/main/java/com/example/movierecap
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
 
-          cat << 'EOF' > settings.gradle
-          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
-          rootProject.name = 'MovieRecapAI'
-          include ':app'
-          EOF
+      - name: Create Root Gradle Files
+        run: |
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo "rootProject.name = 'MovieRecapAI'" >> settings.gradle
+          echo "include ':app'" >> settings.gradle
 
-          cat << 'EOF' > build.gradle
-          plugins { id 'com.android.application' version '8.1.0' apply false }
-          EOF
+          echo "plugins { id 'com.android.application' version '8.1.0' apply false }" > build.gradle
 
-          cat << 'EOF' > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.example.movierecap'
-              compileSdk 33
-              defaultConfig {
-                  applicationId 'com.example.movierecap'
-                  minSdk 21
-                  targetSdk 33
-                  versionCode 1
-                  versionName '1.0'
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.9.0'
-          }
-          EOF
+      - name: Create App Build Gradle
+        run: |
+          echo "plugins { id 'com.android.application' }" > app/build.gradle
+          echo "android {" >> app/build.gradle
+          echo "    namespace 'com.example.movierecap'" >> app/build.gradle
+          echo "    compileSdk 33" >> app/build.gradle
+          echo "    defaultConfig {" >> app/build.gradle
+          echo "        applicationId 'com.example.movierecap'" >> app/build.gradle
+          echo "        minSdk 21" >> app/build.gradle
+          echo "        targetSdk 33" >> app/build.gradle
+          echo "        versionCode 1" >> app/build.gradle
+          echo "        versionName '1.0'" >> app/build.gradle
+          echo "    }" >> app/build.gradle
+          echo "}" >> app/build.gradle
+          echo "dependencies {" >> app/build.gradle
+          echo "    implementation 'androidx.appcompat:appcompat:1.6.1'" >> app/build.gradle
+          echo "    implementation 'com.google.android.material:material:1.9.0'" >> app/build.gradle
+          echo "}" >> app/build.gradle
 
-          cat << 'EOF' > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
-          </resources>
-          EOF
+      - name: Create Resources and Manifest
+        run: |
+          echo '<resources><style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"/></resources>' > app/src/main/res/values/styles.xml
 
-          cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="#121212"
-              android:padding="16dp">
+          echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android">' > app/src/main/AndroidManifest.xml
+          echo '    <uses-permission android:name="android.permission.INTERNET" />' >> app/src/main/AndroidManifest.xml
+          echo '    <application android:theme="@style/AppTheme" android:label="Movie Recap AI">' >> app/src/main/AndroidManifest.xml
+          echo '        <activity android:name=".MainActivity" android:exported="true">' >> app/src/main/AndroidManifest.xml
+          echo '            <intent-filter>' >> app/src/main/AndroidManifest.xml
+          echo '                <action android:name="android.intent.action.MAIN" />' >> app/src/main/AndroidManifest.xml
+          echo '                <category android:name="android.intent.category.LAUNCHER" />' >> app/src/main/AndroidManifest.xml
+          echo '            </intent-filter>' >> app/src/main/AndroidManifest.xml
+          echo '        </activity>' >> app/src/main/AndroidManifest.xml
+          echo '    </application>' >> app/src/main/AndroidManifest.xml
+          echo '</manifest>' >> app/src/main/AndroidManifest.xml
 
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:orientation="vertical">
+      - name: Create Layout XML
+        run: |
+          echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/res/layout/activity_main.xml
+          echo '<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#121212" android:padding="16dp">' >> app/src/main/res/layout/activity_main.xml
+          echo '    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">' >> app/src/main/res/layout/activity_main.xml
+          echo '        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Movie Recap AI" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" android:layout_gravity="center" android:layout_marginBottom="16dp"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '        <EditText android:id="@+id/etApiKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Gemini API Key" android:textColorHint="#888888" android:textColor="#FFFFFF" android:inputType="textPassword" android:background="#222222" android:padding="12dp" android:layout_marginBottom="12dp"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '        <EditText android:id="@+id/etMovieName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Movie Name" android:textColorHint="#888888" android:textColor="#FFFFFF" android:background="#222222" android:padding="12dp" android:layout_marginBottom="16dp"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '        <Button android:id="@+id/btnGenerate" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Generate Recap"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '        <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone" android:layout_margin="16dp"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '        <TextView android:id="@+id/tvResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#EEEEEE" android:textSize="16sp" android:layout_marginTop="16dp"/>' >> app/src/main/res/layout/activity_main.xml
+          echo '    </LinearLayout>' >> app/src/main/res/layout/activity_main.xml
+          echo '</ScrollView>' >> app/src/main/res/layout/activity_main.xml
 
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="Movie Recap AI"
-                      android:textColor="#FFFFFF"
-                      android:textSize="24sp"
-                      android:textStyle="bold"
-                      android:layout_gravity="center"
-                      android:layout_marginBottom="16dp"/>
-
-                  <EditText
-                      android:id="@+id/etApiKey"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:hint="Gemini API Key"
-                      android:textColorHint="#888888"
-                      android:textColor="#FFFFFF"
-                      android:inputType="textPassword"
-                      android:background="#222222"
-                      android:padding="12dp"
-                      android:layout_marginBottom="12dp"/>
-
-                  <EditText
-                      android:id="@+id/etMovieName"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:hint="Movie Name"
-                      android:textColorHint="#888888"
-                      android:textColor="#FFFFFF"
-                      android:background="#222222"
-                      android:padding="12dp"
-                      android:layout_marginBottom="16dp"/>
-
-                  <Button
-                      android:id="@+id/btnGenerate"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Generate Recap"/>
-
-                  <ProgressBar
-                      android:id="@+id/progressBar"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_gravity="center"
-                      android:visibility="gone"
-                      android:layout_margin="16dp"/>
-
-                  <TextView
-                      android:id="@+id/tvResult"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:textColor="#EEEEEE"
-                      android:textSize="16sp"
-                      android:layout_marginTop="16dp"/>
-              </LinearLayout>
-          </ScrollView>
-          EOF
-
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application
-                  android:theme="@style/AppTheme"
-                  android:label="Movie Recap AI">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
+      - name: Create Java Source Code
+        run: |
           cat << 'EOF' > app/src/main/java/com/example/movierecap/MainActivity.java
           package com.example.movierecap;
 
@@ -275,10 +212,13 @@ jobs:
           }
           EOF
 
+      - name: Setup Gradle Wrapper and Build APK
+        run: |
           gradle wrapper
+          chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: movie-recap-ai-debug-apk

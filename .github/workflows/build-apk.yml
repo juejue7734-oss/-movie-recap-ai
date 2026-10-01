@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -19,9 +19,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Android App Project
+      - name: Setup Project Files
         run: |
-          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/values app/src/main/res/layout
+          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/layout app/src/main/res/values
 
           cat << 'EOF' > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
@@ -38,18 +38,18 @@ jobs:
           plugins { id 'com.android.application' }
           android {
               namespace 'com.example.movierecap'
-              compileSdk 34
+              compileSdk 33
               defaultConfig {
                   applicationId 'com.example.movierecap'
-                  minSdk 24
-                  targetSdk 34
+                  minSdk 21
+                  targetSdk 33
                   versionCode 1
                   versionName '1.0'
               }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'com.google.android.material:material:1.9.0'
           }
           EOF
 
@@ -75,7 +75,7 @@ jobs:
                   <TextView
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:text="🎬 Movie Recap AI"
+                      android:text="Movie Recap AI"
                       android:textColor="#FFFFFF"
                       android:textSize="24sp"
                       android:textStyle="bold"
@@ -86,7 +86,7 @@ jobs:
                       android:id="@+id/etApiKey"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:hint="Gemini API Key ထည့်ပါ"
+                      android:hint="Gemini API Key"
                       android:textColorHint="#888888"
                       android:textColor="#FFFFFF"
                       android:inputType="textPassword"
@@ -98,7 +98,7 @@ jobs:
                       android:id="@+id/etMovieName"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:hint="ရုပ်ရှင်နာမည် သို့မဟုတ် အကြောင်းအရာ"
+                      android:hint="Movie Name"
                       android:textColorHint="#888888"
                       android:textColor="#FFFFFF"
                       android:background="#222222"
@@ -109,10 +109,7 @@ jobs:
                       android:id="@+id/btnGenerate"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Generate Movie Recap"
-                      android:backgroundTint="#BB86FC"
-                      android:textColor="#000000"
-                      android:textStyle="bold"/>
+                      android:text="Generate Recap"/>
 
                   <ProgressBar
                       android:id="@+id/progressBar"
@@ -128,8 +125,7 @@ jobs:
                       android:layout_height="wrap_content"
                       android:textColor="#EEEEEE"
                       android:textSize="16sp"
-                      android:layout_marginTop="16dp"
-                      android:lineSpacingExtra="4dp"/>
+                      android:layout_marginTop="16dp"/>
               </LinearLayout>
           </ScrollView>
           EOF
@@ -199,7 +195,7 @@ jobs:
                   String movieName = etMovieName.getText().toString().trim();
 
                   if (apiKey.isEmpty() || movieName.isEmpty()) {
-                      Toast.makeText(this, "API Key နှင့် ရုပ်ရှင်နာမည် ဖြည့်ပါ", Toast.LENGTH_SHORT).show();
+                      Toast.makeText(this, "Please enter API Key and Movie Name", Toast.LENGTH_SHORT).show();
                       return;
                   }
 
@@ -216,10 +212,10 @@ jobs:
                           conn.setRequestProperty("Content-Type", "application/json");
                           conn.setDoOutput(true);
 
-                          String prompt = "Please write a detailed movie recap and review in Burmese language for the movie: " + movieName;
-                          
+                          String promptText = "Write a movie recap and summary in Burmese language for: " + movieName;
+
                           JSONObject textPart = new JSONObject();
-                          textPart.put("text", prompt);
+                          textPart.put("text", promptText);
 
                           JSONArray partsArray = new JSONArray();
                           partsArray.put(textPart);
@@ -263,7 +259,7 @@ jobs:
                               runOnUiThread(() -> {
                                   progressBar.setVisibility(View.GONE);
                                   btnGenerate.setEnabled(true);
-                                  tvResult.setText("Error: Gemini API က တုံ့ပြန်မှု မရပါ။ API Key မှန်မမှန် စစ်ပေးပါ။ (Response Code: " + responseCode + ")");
+                                  tvResult.setText("Error Code: " + responseCode + ". Check your API Key.");
                               });
                           }
 

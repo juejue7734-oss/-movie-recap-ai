@@ -10,76 +10,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create Android project files
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Create Minimal Project & Build
         run: |
           mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/values
 
           cat << 'EOF' > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
           rootProject.name = 'MovieRecapAI'
           include ':app'
           EOF
 
           cat << 'EOF' > build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
-          }
+          plugins { id 'com.android.application' version '8.1.0' apply false }
           EOF
 
           cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
-
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.example.movierecap'
-              compileSdk 34
-
+              compileSdk 33
               defaultConfig {
                   applicationId 'com.example.movierecap'
-                  minSdk 24
-                  targetSdk 34
+                  minSdk 21
+                  targetSdk 33
                   versionCode 1
                   versionName '1.0'
               }
           }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-          }
-          EOF
-
-          cat << 'EOF' > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
-          </resources>
           EOF
 
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:theme="@style/AppTheme"
-                  android:label="Movie Recap AI">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+              <application android:label="Movie Recap AI">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -91,55 +64,25 @@ jobs:
 
           cat << 'EOF' > app/src/main/java/com/example/movierecap/MainActivity.java
           package com.example.movierecap;
-
           import android.app.Activity;
           import android.os.Bundle;
-          import android.graphics.Color;
-          import android.view.Gravity;
-          import android.widget.*;
+          import android.widget.TextView;
 
           public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
-                  LinearLayout l = new LinearLayout(this);
-                  l.setOrientation(LinearLayout.VERTICAL);
-                  l.setGravity(Gravity.CENTER);
-                  l.setPadding(40,40,40,40);
-                  l.setBackgroundColor(Color.rgb(18, 18, 18));
-
-                  TextView t = new TextView(this);
-                  t.setText("Movie Recap AI");
-                  t.setTextColor(Color.WHITE);
-                  t.setTextSize(28);
-                  t.setGravity(Gravity.CENTER);
-
-                  Button btn = new Button(this);
-                  btn.setText("Start Movie Recap");
-                  btn.setOnClickListener(v -> 
-                      Toast.makeText(this, "Movie Recap Started!", Toast.LENGTH_SHORT).show()
-                  );
-
-                  l.addView(t);
-                  l.addView(btn);
-                  setContentView(l);
+                  TextView tv = new TextView(this);
+                  tv.setText("Movie Recap AI Ready!");
+                  setContentView(tv);
               }
           }
           EOF
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+          gradle wrapper
+          ./gradlew assembleDebug
 
-      - name: Setup Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.2
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: movie-recap-ai-debug-apk

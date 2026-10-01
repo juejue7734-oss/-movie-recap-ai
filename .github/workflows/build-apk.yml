@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -19,9 +19,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Minimal Project & Build
+      - name: Build Android App Project
         run: |
-          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/values
+          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/values app/src/main/res/layout
 
           cat << 'EOF' > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
@@ -38,21 +38,111 @@ jobs:
           plugins { id 'com.android.application' }
           android {
               namespace 'com.example.movierecap'
-              compileSdk 33
+              compileSdk 34
               defaultConfig {
                   applicationId 'com.example.movierecap'
-                  minSdk 21
-                  targetSdk 33
+                  minSdk 24
+                  targetSdk 34
                   versionCode 1
                   versionName '1.0'
               }
           }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/styles.xml
+          <resources>
+              <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#121212"
+              android:padding="16dp">
+
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="🎬 Movie Recap AI"
+                      android:textColor="#FFFFFF"
+                      android:textSize="24sp"
+                      android:textStyle="bold"
+                      android:layout_gravity="center"
+                      android:layout_marginBottom="16dp"/>
+
+                  <EditText
+                      android:id="@+id/etApiKey"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:hint="Gemini API Key ထည့်ပါ"
+                      android:textColorHint="#888888"
+                      android:textColor="#FFFFFF"
+                      android:inputType="textPassword"
+                      android:background="#222222"
+                      android:padding="12dp"
+                      android:layout_marginBottom="12dp"/>
+
+                  <EditText
+                      android:id="@+id/etMovieName"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:hint="ရုပ်ရှင်နာမည် သို့မဟုတ် အကြောင်းအရာ"
+                      android:textColorHint="#888888"
+                      android:textColor="#FFFFFF"
+                      android:background="#222222"
+                      android:padding="12dp"
+                      android:layout_marginBottom="16dp"/>
+
+                  <Button
+                      android:id="@+id/btnGenerate"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Generate Movie Recap"
+                      android:backgroundTint="#BB86FC"
+                      android:textColor="#000000"
+                      android:textStyle="bold"/>
+
+                  <ProgressBar
+                      android:id="@+id/progressBar"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_gravity="center"
+                      android:visibility="gone"
+                      android:layout_margin="16dp"/>
+
+                  <TextView
+                      android:id="@+id/tvResult"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:textColor="#EEEEEE"
+                      android:textSize="16sp"
+                      android:layout_marginTop="16dp"
+                      android:lineSpacingExtra="4dp"/>
+              </LinearLayout>
+          </ScrollView>
           EOF
 
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Movie Recap AI">
-                  <activity android:name=".MainActivity" android:exported="true">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:theme="@style/AppTheme"
+                  android:label="Movie Recap AI">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -64,17 +154,127 @@ jobs:
 
           cat << 'EOF' > app/src/main/java/com/example/movierecap/MainActivity.java
           package com.example.movierecap;
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.widget.TextView;
 
-          public class MainActivity extends Activity {
+          import androidx.appcompat.app.AppCompatActivity;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.EditText;
+          import android.widget.ProgressBar;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          import java.io.BufferedReader;
+          import java.io.InputStreamReader;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+
+          public class MainActivity extends AppCompatActivity {
+
+              private EditText etApiKey, etMovieName;
+              private Button btnGenerate;
+              private ProgressBar progressBar;
+              private TextView tvResult;
+
               @Override
-              protected void onCreate(Bundle b) {
-                  super.onCreate(b);
-                  TextView tv = new TextView(this);
-                  tv.setText("Movie Recap AI Ready!");
-                  setContentView(tv);
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  etApiKey = findViewById(R.id.etApiKey);
+                  etMovieName = findViewById(R.id.etMovieName);
+                  btnGenerate = findViewById(R.id.btnGenerate);
+                  progressBar = findViewById(R.id.progressBar);
+                  tvResult = findViewById(R.id.tvResult);
+
+                  btnGenerate.setOnClickListener(v -> generateRecap());
+              }
+
+              private void generateRecap() {
+                  String apiKey = etApiKey.getText().toString().trim();
+                  String movieName = etMovieName.getText().toString().trim();
+
+                  if (apiKey.isEmpty() || movieName.isEmpty()) {
+                      Toast.makeText(this, "API Key နှင့် ရုပ်ရှင်နာမည် ဖြည့်ပါ", Toast.LENGTH_SHORT).show();
+                      return;
+                  }
+
+                  progressBar.setVisibility(View.VISIBLE);
+                  tvResult.setText("");
+                  btnGenerate.setEnabled(false);
+
+                  new Thread(() -> {
+                      try {
+                          String urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+                          URL url = new URL(urlString);
+                          HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                          conn.setRequestMethod("POST");
+                          conn.setRequestProperty("Content-Type", "application/json");
+                          conn.setDoOutput(true);
+
+                          String prompt = "Please write a detailed movie recap and review in Burmese language for the movie: " + movieName;
+                          
+                          JSONObject textPart = new JSONObject();
+                          textPart.put("text", prompt);
+
+                          JSONArray partsArray = new JSONArray();
+                          partsArray.put(textPart);
+
+                          JSONObject contentObj = new JSONObject();
+                          contentObj.put("parts", partsArray);
+
+                          JSONArray contentsArray = new JSONArray();
+                          contentsArray.put(contentObj);
+
+                          JSONObject jsonBody = new JSONObject();
+                          jsonBody.put("contents", contentsArray);
+
+                          OutputStream os = conn.getOutputStream();
+                          os.write(jsonBody.toString().getBytes("UTF-8"));
+                          os.close();
+
+                          int responseCode = conn.getResponseCode();
+                          if (responseCode == HttpURLConnection.HTTP_OK) {
+                              BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                              StringBuilder response = new StringBuilder();
+                              String inputLine;
+                              while ((inputLine = in.readLine()) != null) {
+                                  response.append(inputLine);
+                              }
+                              in.close();
+
+                              JSONObject jsonResponse = new JSONObject(response.toString());
+                              JSONArray candidates = jsonResponse.getJSONArray("candidates");
+                              JSONObject firstCandidate = candidates.getJSONObject(0);
+                              JSONObject content = firstCandidate.getJSONObject("content");
+                              JSONArray parts = content.getJSONArray("parts");
+                              String resultText = parts.getJSONObject(0).getString("text");
+
+                              runOnUiThread(() -> {
+                                  progressBar.setVisibility(View.GONE);
+                                  btnGenerate.setEnabled(true);
+                                  tvResult.setText(resultText);
+                              });
+                          } else {
+                              runOnUiThread(() -> {
+                                  progressBar.setVisibility(View.GONE);
+                                  btnGenerate.setEnabled(true);
+                                  tvResult.setText("Error: Gemini API က တုံ့ပြန်မှု မရပါ။ API Key မှန်မမှန် စစ်ပေးပါ။ (Response Code: " + responseCode + ")");
+                              });
+                          }
+
+                      } catch (Exception e) {
+                          runOnUiThread(() -> {
+                              progressBar.setVisibility(View.GONE);
+                              btnGenerate.setEnabled(true);
+                              tvResult.setText("Error: " + e.getMessage());
+                          });
+                      }
+                  }).start();
               }
           }
           EOF

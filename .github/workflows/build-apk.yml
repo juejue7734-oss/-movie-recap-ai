@@ -1,4 +1,113 @@
 name: Build Movie Recap AI APK
+name: Build Movie Recap AI APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/java/com/example/movierecap app/src/main/res/values
+
+          printf "%s\n" \
+            "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" \
+            "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" \
+            "rootProject.name='MovieRecapAI'" \
+            "include ':app'" > settings.gradle
+
+          printf "%s\n" \
+            "plugins { id 'com.android.application' version '8.6.1' apply false }" > build.gradle
+
+          printf "%s\n" \
+            "plugins { id 'com.android.application' }" \
+            "android { namespace 'com.example.movierecap'; compileSdk 35" \
+            "defaultConfig { applicationId 'com.example.movierecap'; minSdk 23; targetSdk 35; versionCode 1; versionName '1.0' } }" \
+            "dependencies { implementation 'androidx.appcompat:appcompat:1.7.0'; implementation 'com.google.android.material:material:1.12.0' }" > app/build.gradle
+
+          cat > app/src/main/res/values/styles.xml << 'EOF'
+          <resources>
+              <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
+          </resources>
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:theme="@style/AppTheme" android:label="Movie Recap AI">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/example/movierecap/MainActivity.java << 'EOF'
+          package com.example.movierecap;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.graphics.Color;
+          import android.view.Gravity;
+          import android.widget.*;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+                  LinearLayout l = new LinearLayout(this);
+                  l.setOrientation(LinearLayout.VERTICAL);
+                  l.setGravity(Gravity.CENTER);
+                  l.setPadding(40,40,40,40);
+                  l.setBackgroundColor(Color.rgb(18, 18, 18));
+
+                  TextView t = new TextView(this);
+                  t.setText("Movie Recap AI");
+                  t.setTextColor(Color.WHITE);
+                  t.setTextSize(28);
+                  t.setGravity(Gravity.CENTER);
+
+                  Button btn = new Button(this);
+                  btn.setText("Start Movie Recap");
+                  btn.setOnClickListener(v -> 
+                      Toast.makeText(this, "Movie Recap Started!", Toast.LENGTH_SHORT).show()
+                  );
+
+                  l.addView(t);
+                  l.addView(btn);
+                  setContentView(l);
+              }
+          }
+          EOF
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: movie-recap-ai-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
- name: Build Movie Recap AI APK
+name: Build Movie Recap AI APK
 
 on:
   workflow_dispatch:
